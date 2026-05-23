@@ -2,7 +2,7 @@
   "name": "Ledger",
   "short_name": "Ledger",
   "description": "Personal finance tracker",
-  "start_url": "/",
+  "start_url": "/personalFinanceTracker/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
