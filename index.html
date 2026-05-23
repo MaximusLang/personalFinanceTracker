@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#000000"/>
+<title>Ledger</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --muted: #888;
+    --accent: #ffffff;
+    --green: #4ade80;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding-bottom: 100px;
+  }
+
+  header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+
+  .logo span { display: block; }
+
+  .sync-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .sync-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* BALANCES */
+  .balances {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .balance-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+
+  .balance-card.wide { grid-column: span 2; }
+
+  .balance-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .balance-amount {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .balance-amount.positive { color: var(--green); }
+  .balance-amount.liability { color: var(--red); }
+  .balance-amount.neutral { color: var(--text); }
+  .balance-amount.amber { color: var(--amber); }
+
+  .balance-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .cc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    margin: 0 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* FORM */
+  .form-panel {
+    padding: 20px;
+    display: none;
+  }
+
+  .form-panel.active { display: block; }
+
+  .field { margin-bottom: 14px; }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .field textarea { resize: none; height: 72px; }
+
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .add-inline {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .add-inline input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+  }
+
+  .add-inline button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .add-inline button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 16px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: opacity 0.2s;
+  }
+
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  .toast.show { opacity: 1; }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+
+  /* RECENT TRANSACTIONS */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 0 20px;
+    margin-bottom: 10px;
+  }
+
+  .tx-list { padding: 0 20px; }
+
+  .tx-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tx-left { flex: 1; }
+
+  .tx-type {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .tx-desc {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 2px;
+  }
+
+  .tx-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .tx-amount {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .tx-amount.in { color: var(--green); }
+  .tx-amount.out { color: var(--red); }
+  .tx-amount.move { color: var(--amber); }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 12px 0 20px;
+  }
+
+  .nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .nav-btn.active { color: var(--accent); }
+
+  .nav-icon {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .loading {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 40px 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>LED</span>
+    <span>GER</span>
+  </div>
+  <button class="sync-btn" onclick="loadAll()">SYNC</button>
+</header>
+
+<!-- VIEWS -->
+<div id="view-dashboard">
+  <div class="balances" id="balances-grid">
+    <div class="loading">LOADING...</div>
+  </div>
+  <p class="section-label">RECENT</p>
+  <div class="tx-list" id="tx-list">
+    <div class="loading">LOADING...</div>
+  </div>
+</div>
+
+<div id="view-record" style="display:none">
+  <div class="tabs" style="margin-top:20px">
+    <button class="tab active" onclick="switchTab('in')">CASH IN</button>
+    <button class="tab" onclick="switchTab('out')">CASH OUT</button>
+    <button class="tab" onclick="switchTab('move')">MOVE</button>
+    <button class="tab" onclick="switchTab('adjust')">ADJUST</button>
+  </div>
+
+  <!-- CASH IN -->
+  <div class="form-panel active" id="panel-in">
+    <div class="field" style="margin-top:20px">
+      <label>Amount</label>
+      <input type="number" id="in-amount" placeholder="0.00" step="0.01" min="0"/>
+    </div>
+    <div class="field">
+      <label>Source</label>
+      <select id="in-source"></select>
+      <div class="add-inline">
+        <input type="text" id="in-source-new" placeholder="Add new source..."/>
+        <button onclick="addNewSource()">+ ADD</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Into Account</label>
+      <select id="in-account"></select>
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="in-note" placeholder="Any details..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitCashIn()">RECORD CASH IN</button>
+  </div>
+
+  <!-- CASH OUT -->
+  <div class="form-panel" id="panel-out">
+    <div class="field" style="margin-top:20px">
+      <label>Amount</label>
+      <input type="number" id="out-amount" placeholder="0.00" step="0.01" min="0"/>
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="out-category"></select>
+      <div class="add-inline">
+        <input type="text" id="out-cat-new" placeholder="Add new category..."/>
+        <button onclick="addNewCategory()">+ ADD</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>From Account</label>
+      <select id="out-account"></select>
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="out-note" placeholder="Any details..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitCashOut()">RECORD CASH OUT</button>
+  </div>
+
+  <!-- MOVE -->
+  <div class="form-panel" id="panel-move">
+    <div class="field" style="margin-top:20px">
+      <label>Amount</label>
+      <input type="number" id="move-amount" placeholder="0.00" step="0.01" min="0"/>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>From</label>
+        <select id="move-from"></select>
+      </div>
+      <div class="field">
+        <label>To</label>
+        <select id="move-to"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="move-note" placeholder="Any details..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitMove()">RECORD MOVE</button>
+  </div>
+
+  <!-- ADJUST -->
+  <div class="form-panel" id="panel-adjust">
+    <div class="field" style="margin-top:20px">
+      <label>Account</label>
+      <select id="adj-account"></select>
+    </div>
+    <div class="field">
+      <label>New Balance</label>
+      <input type="number" id="adj-value" placeholder="0.00" step="0.01"/>
+    </div>
+    <div class="field">
+      <label>Note (optional)</label>
+      <textarea id="adj-note" placeholder="Reason for adjustment..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitAdjust()">APPLY ADJUSTMENT</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav>
+  <button class="nav-btn active" id="nav-dashboard" onclick="showView('dashboard')">
+    <span class="nav-icon">◈</span>DASH
+  </button>
+  <button class="nav-btn" id="nav-record" onclick="showView('record')">
+    <span class="nav-icon">◎</span>RECORD
+  </button>
+</nav>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwuilug5cIVkt2DjestHoq5sTP-OMOurld1etCcHBWflEng3y7TXvtDO7DeOAw7ECUJYg/exec';
+
+let accounts = {};
+let sources = [];
+let categories = [];
+
+async function api(action, data = {}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({ action, data }),
+    headers: { 'Content-Type': 'text/plain' }
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.result;
+}
+
+async function loadAll() {
+  try {
+    [accounts, sources, categories] = await Promise.all([
+      api('getAccounts'),
+      api('getSources'),
+      api('getCategories')
+    ]);
+    renderBalances();
+    populateDropdowns();
+    loadTransactions();
+  } catch(e) {
+    toast('Sync failed: ' + e.message, 'error');
+  }
+}
+
+function renderBalances() {
+  const g = document.getElementById('balances-grid');
+  const a = accounts;
+
+  const ccAvail = (a.cc_cycle?.limit || 1000) - (a.cc_cycle?.balance || 0);
+
+  g.innerHTML = `
+    <div class="balance-card">
+      <div class="balance-label">CHECKING</div>
+      <div class="balance-amount positive">$${fmt(a.checking?.balance)}</div>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label">CASHAPP</div>
+      <div class="balance-amount positive">$${fmt(a.cashapp?.balance)}</div>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label">UBEREATS</div>
+      <div class="balance-amount amber">$${fmt(a.ubereats?.balance)}</div>
+      <div class="balance-sub">pending deposit</div>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label">STOCKS</div>
+      <div class="balance-amount neutral">$${fmt(a.stocks?.balance)}</div>
+      <div class="balance-sub">market value</div>
+    </div>
+    <div class="balance-card wide">
+      <div class="balance-label">CREDIT CARD</div>
+      <div class="cc-row">
+        <div>
+          <div class="balance-amount liability">$${fmt(a.cc_cycle?.balance)} <span style="font-size:13px;color:var(--muted)">cycle</span></div>
+          <div class="balance-sub">$${fmt(ccAvail)} available of $${fmt(a.cc_cycle?.limit)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="balance-amount liability" style="font-size:16px">$${fmt(a.cc_carry?.balance)}</div>
+          <div class="balance-sub">carry balance</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function populateDropdowns() {
+  const acctOptions = Object.values(accounts)
+    .map(a => `<option value="${a.id}">${a.name}</option>`)
+    .join('');
+
+  const assetAccts = Object.values(accounts)
+    .filter(a => !['cc_carry'].includes(a.id))
+    .map(a => `<option value="${a.id}">${a.name}</option>`)
+    .join('');
+
+  const sourceOpts = sources.map(s => `<option>${s}</option>`).join('');
+  const catOpts = categories.map(c => `<option>${c}</option>`).join('');
+
+  document.getElementById('in-source').innerHTML = sourceOpts;
+  document.getElementById('in-account').innerHTML = assetAccts;
+  document.getElementById('out-category').innerHTML = catOpts;
+  document.getElementById('out-account').innerHTML = assetAccts;
+  document.getElementById('move-from').innerHTML = assetAccts;
+  document.getElementById('move-to').innerHTML = acctOptions;
+  document.getElementById('adj-account').innerHTML = acctOptions;
+}
+
+async function loadTransactions() {
+  const txList = document.getElementById('tx-list');
+  txList.innerHTML = '<div class="loading">LOADING...</div>';
+  try {
+    const txs = await api('getRecentTransactions', { limit: 15 });
+    if (!txs.length) { txList.innerHTML = '<div class="loading">NO TRANSACTIONS YET</div>'; return; }
+    txList.innerHTML = txs.map(tx => {
+      const isIn = tx.type === 'CASH_IN';
+      const isOut = tx.type === 'CASH_OUT';
+      const isMove = tx.type === 'MOVE';
+      const cls = isIn ? 'in' : isOut ? 'out' : 'move';
+      const prefix = isIn ? '+' : isOut ? '-' : '→';
+      const desc = isIn
+        ? `${tx.source} → ${acctName(tx.toAccount)}`
+        : isOut
+        ? `${tx.category} · ${acctName(tx.fromAccount)}`
+        : `${acctName(tx.fromAccount)} → ${acctName(tx.toAccount)}`;
+      const d = new Date(tx.timestamp);
+      const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `
+        <div class="tx-item">
+          <div class="tx-left">
+            <div class="tx-type">${tx.type} · ${dateStr}</div>
+            <div class="tx-desc">${desc}</div>
+            ${tx.note ? `<div class="tx-note">${tx.note}</div>` : ''}
+          </div>
+          <div class="tx-amount ${cls}">${prefix}$${fmt(tx.amount)}</div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    txList.innerHTML = '<div class="loading">ERROR LOADING</div>';
+  }
+}
+
+function acctName(id) {
+  return accounts[id]?.name || id || '—';
+}
+
+function fmt(n) {
+  return parseFloat(n || 0).toFixed(2);
+}
+
+async function submitCashIn() {
+  const amount = document.getElementById('in-amount').value;
+  const source = document.getElementById('in-source').value;
+  const toAccount = document.getElementById('in-account').value;
+  const note = document.getElementById('in-note').value;
+  if (!amount || !source || !toAccount) { toast('Fill in all fields', 'error'); return; }
+  await submit('recordCashIn', { amount, source, toAccount, note }, 'in-amount', 'in-note');
+}
+
+async function submitCashOut() {
+  const amount = document.getElementById('out-amount').value;
+  const category = document.getElementById('out-category').value;
+  const fromAccount = document.getElementById('out-account').value;
+  const note = document.getElementById('out-note').value;
+  if (!amount || !category || !fromAccount) { toast('Fill in all fields', 'error'); return; }
+  await submit('recordCashOut', { amount, category, fromAccount, note }, 'out-amount', 'out-note');
+}
+
+async function submitMove() {
+  const amount = document.getElementById('move-amount').value;
+  const fromAccount = document.getElementById('move-from').value;
+  const toAccount = document.getElementById('move-to').value;
+  const note = document.getElementById('move-note').value;
+  if (!amount || !fromAccount || !toAccount) { toast('Fill in all fields', 'error'); return; }
+  await submit('recordMove', { amount, fromAccount, toAccount, note }, 'move-amount', 'move-note');
+}
+
+async function submitAdjust() {
+  const accountId = document.getElementById('adj-account').value;
+  const newValue = document.getElementById('adj-value').value;
+  const note = document.getElementById('adj-note').value;
+  if (!accountId || newValue === '') { toast('Fill in all fields', 'error'); return; }
+  await submit('recordAdjustment', { accountId, newValue, note }, 'adj-value', 'adj-note');
+}
+
+async function submit(action, data, amountId, noteId) {
+  const btn = document.querySelector('#panel-' + currentTab + ' .submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'SAVING...';
+  try {
+    const result = await api(action, data);
+    if (!result.success) { toast(result.message, 'error'); return; }
+    toast(result.message || 'Recorded', 'success');
+    document.getElementById(amountId).value = '';
+    document.getElementById(noteId).value = '';
+    await loadAll();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = btn.textContent.includes('SAVING') ? btn.textContent.replace('SAVING...', originalBtnText(action)) : btn.textContent;
+  }
+}
+
+function originalBtnText(action) {
+  const map = { recordCashIn: 'RECORD CASH IN', recordCashOut: 'RECORD CASH OUT', recordMove: 'RECORD MOVE', recordAdjustment: 'APPLY ADJUSTMENT' };
+  return map[action] || 'SUBMIT';
+}
+
+async function addNewSource() {
+  const val = document.getElementById('in-source-new').value.trim();
+  if (!val) return;
+  const result = await api('addSource', { name: val });
+  if (result.success) {
+    sources.push(val);
+    populateDropdowns();
+    document.getElementById('in-source-new').value = '';
+    document.getElementById('in-source').value = val;
+    toast('Source added', 'success');
+  } else {
+    toast(result.message, 'error');
+  }
+}
+
+async function addNewCategory() {
+  const val = document.getElementById('out-cat-new').value.trim();
+  if (!val) return;
+  const result = await api('addCategory', { name: val });
+  if (result.success) {
+    categories.push(val);
+    populateDropdowns();
+    document.getElementById('out-cat-new').value = '';
+    document.getElementById('out-category').value = val;
+    toast('Category added', 'success');
+  } else {
+    toast(result.message, 'error');
+  }
+}
+
+let currentTab = 'in';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function showView(view) {
+  document.getElementById('view-dashboard').style.display = view === 'dashboard' ? 'block' : 'none';
+  document.getElementById('view-record').style.display = view === 'record' ? 'block' : 'none';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + view).classList.add('active');
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+
+loadAll();
+</script>
+</body>
+</html>
